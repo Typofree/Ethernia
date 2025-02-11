@@ -1,4 +1,3 @@
-import 'package:ar_flutter_plugin_flutterflow/ar_flutter_plugin.dart';
 import 'package:ar_flutter_plugin_flutterflow/datatypes/node_types.dart';
 import 'package:ar_flutter_plugin_flutterflow/managers/ar_object_manager.dart';
 import 'package:ar_flutter_plugin_flutterflow/managers/ar_session_manager.dart';
@@ -29,7 +28,7 @@ class ModelsController {
         type: NodeType.localGLTF2,
         uri: modelUri,
         scale: Vector3(0.2, 0.2, 0.2),
-        position: Vector3(0.0, 0.0, 0.0),
+        position: Vector3(0.0, -0.5, -2.0),
         rotation: Vector4(0.0, 0.0, 0.0, 1.0),
       );
 
@@ -47,6 +46,8 @@ class ModelsController {
         type: NodeType.webGLB,
         uri: modelUri,
         scale: Vector3(0.2, 0.2, 0.2),
+        position: Vector3(0.0, -0.5, -2.0),
+        rotation: Vector4(0.0, 0.0, 0.0, 1.0),
       );
 
       bool? didAddWebNode = await arObjectManager.addNode(newNode);
@@ -55,6 +56,8 @@ class ModelsController {
   }
 
   void dispose() {
-    arSessionManager.dispose();
+    if (arSessionManager != null) {
+      arSessionManager.dispose();
+    }
   }
 }

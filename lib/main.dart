@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
-
 import 'package:ethernia_ar/screens/homes/homeView.dart';
-
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

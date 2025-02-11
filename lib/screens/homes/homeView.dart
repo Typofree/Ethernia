@@ -12,11 +12,11 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   List<ShopCardModel> mycard = [
-    ShopCardModel(Icons.shopping_bag, 'Warrior', true, ARObjects.shoe, false),
-    ShopCardModel(Icons.apartment, 'Magician', true, ARObjects.chair, false),
-    ShopCardModel(Icons.home, 'Ranger', true, ARObjects.chicken, false),
-    ShopCardModel(Icons.grade, 'Rogue', true, ARObjects.figure, false),
-    ShopCardModel(Icons.animation, 'Barbarian', true, ARObjects.fox, false),
+    ShopCardModel(Icons.watch, 'Warrior', true, ARObjects.warrior, true),
+    ShopCardModel(Icons.apartment, 'Magician', true, ARObjects.warrior, true),
+    ShopCardModel(Icons.home, 'Ranger', true, ARObjects.warrior, false),
+    ShopCardModel(Icons.grade, 'Rogue', true, ARObjects.warrior, false),
+    ShopCardModel(Icons.animation, 'Barbarian', true, ARObjects.warrior, false),
   ];
 
   @override
@@ -29,7 +29,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
-              "Let's shopping!",
+              "Choose your characters",
               style: TextStyle(fontSize: 24, color: AppColors.black54),
             ),
           ),
@@ -100,39 +100,25 @@ class _MyHomePageState extends State<MyHomePage> {
 
 class AppColors {
   static Color mainColor = Colors.deepPurple;
-
   static Color background = const Color(0xfff6f7f9);
-
   static Color black54 = Colors.black54;
-
   static Color white = Colors.white;
-
   static Color grey = Colors.grey;
 }
 
 class ARObjects {
-
-  static const String fox = "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Duck/glTF-Binary/Duck.glb";
-
-  static const String figure = "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Duck/glTF-Binary/Duck.glb";
-
-  static const String shoe = "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Duck/glTF-Binary/Duck.glb";
-
-  static const String chair =
-      "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Duck/glTF-Binary/Duck.glb";
-
-  static const String chicken = "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Duck/glTF-Binary/Duck.glb";
+  static const String warrior = "https://raw.githubusercontent.com/Typofree/depot_model/main/models/caracters/warrior.glb";
+  static const String rogue = "https://raw.githubusercontent.com/Typofree/depot_model/main/models/caracters/warrior.glb";
+  static const String magician = "https://raw.githubusercontent.com/Typofree/depot_model/main/models/caracters/warrior.glb";
+  static const String ranger = "https://raw.githubusercontent.com/Typofree/depot_model/main/models/caracters/warrior.glb";
+  static const String barbarian = "https://raw.githubusercontent.com/Typofree/depot_model/main/models/caracters/warrior.glb";
 }
 
 class ShopCardModel {
   final IconData icon;
-
   final String title;
-
   bool isActive = false;
-
   final String object;
-
   final bool isLocal;
 
   ShopCardModel(
