@@ -1,127 +1,132 @@
 import 'package:flutter/material.dart';
+import 'package:ar_flutter_plugin_flutterflow/datatypes/config_planedetection.dart';
+import 'package:ar_flutter_plugin_flutterflow/managers/ar_anchor_manager.dart';
+import 'package:ar_flutter_plugin_flutterflow/managers/ar_location_manager.dart';
+import 'package:ar_flutter_plugin_flutterflow/managers/ar_object_manager.dart';
+import 'package:ar_flutter_plugin_flutterflow/managers/ar_session_manager.dart';
+import 'package:ar_flutter_plugin_flutterflow/datatypes/node_types.dart';
+import 'package:ar_flutter_plugin_flutterflow/ar_flutter_plugin.dart';
+import 'package:ar_flutter_plugin_flutterflow/models/ar_node.dart';
+import 'package:vector_math/vector_math_64.dart';
+import 'dart:async';
 
 import 'package:ethernia_ar/screens/models/ARObjectsScreen.dart';
+import 'package:ethernia_ar/constants/ArModels.dart';
+import 'package:ethernia_ar/constants/appColors.dart';
 
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key}) : super(key: key);
+class ARViewScreen extends StatefulWidget {
+  const ARViewScreen({Key? key}) : super(key: key);
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<ARViewScreen> createState() => _ARViewScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  List<ShopCardModel> mycard = [
-    ShopCardModel(Icons.watch, 'Warrior', true, ARObjects.warrior, true),
-    ShopCardModel(Icons.apartment, 'Magician', true, ARObjects.warrior, true),
-    ShopCardModel(Icons.home, 'Ranger', true, ARObjects.warrior, false),
-    ShopCardModel(Icons.grade, 'Rogue', true, ARObjects.warrior, false),
-    ShopCardModel(Icons.animation, 'Barbarian', true, ARObjects.warrior, false),
-  ];
+class _ARViewScreenState extends State<ARViewScreen> {
+  ARSessionManager? arSessionManager;
+  ARObjectManager? arObjectManager;
+  Vector3? lastTappedPosition;
+  ARNode? lastAddedNode;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(),
-      body: Column(
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              "Choose your characters",
-              style: TextStyle(fontSize: 24, color: AppColors.black54),
-            ),
+      appBar: AppBar(
+        title: const Text('AR Model Viewer'),
+      ),
+      body: ARView(
+        onARViewCreated: onARViewCreated,
+        planeDetectionConfig: PlaneDetectionConfig.horizontal,
+      ),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            onPressed: () {
+              if (lastTappedPosition != null) {
+                addARObject(lastTappedPosition!);
+              }
+            },
+            child: const Icon(Icons.add),
           ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-                children: mycard
-                    .map(
-                      (e) => InkWell(
-                    onTap: () => onTap(e),
-                    child: Card(
-                      color: e.isActive ? AppColors.mainColor : null,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Icon(
-                            e.icon,
-                            size: 50,
-                            color: e.isActive
-                                ? AppColors.white
-                                : AppColors.mainColor,
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            e.title,
-                            style: TextStyle(
-                                color: e.isActive
-                                    ? AppColors.white
-                                    : AppColors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                )
-                    .toList(),
-              ),
-            ),
-          )
+          const SizedBox(height: 10),
+          FloatingActionButton(
+            onPressed: rotateLastAddedNode,
+            child: const Icon(Icons.rotate_right),
+          ),
         ],
       ),
     );
-
   }
 
-  void onTap(ShopCardModel e) {
-    setState(() {
-      e.isActive = !e.isActive;
-    });
+  void onARViewCreated(
+    ARSessionManager sessionManager,
+    ARObjectManager objectManager,
+    ARAnchorManager anchorManager,
+    ARLocationManager locationManager,
+  ) {
+    arSessionManager = sessionManager;
+    arObjectManager = objectManager;
 
-    Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => ARObjectsScreen(
-              object: e.object,
-              isLocal: e.isLocal,
-            ))).then((value) {
-      setState(() {
-        e.isActive = !e.isActive;
+    arSessionManager?.onInitialize(
+      showFeaturePoints: true,
+      showPlanes: true,
+      showWorldOrigin: true,
+      handleTaps: true,
+    );
+
+    arObjectManager?.onNodeTap = (nodes) {
+      debugPrint("Tapped on node: ${nodes.first}");
+    };
+
+    arSessionManager?.onPlaneOrPointTap = (hits) {
+      if (hits.isNotEmpty) {
+        final hitResult = hits.first;
+        lastTappedPosition = Vector3(
+          hitResult.worldTransform[12], // X coordinate
+          hitResult.worldTransform[13], // Y coordinate
+          hitResult.worldTransform[14], // Z coordinate
+        );
+      }
+    };
+  }
+
+  Future<void> addARObject(Vector3 position) async {
+    var newNode = ARNode(
+      type: NodeType.webGLB,
+      uri:
+          "https://raw.githubusercontent.com/Typofree/depot_model/main/models/caracters/warrior.glb",
+      scale: Vector3(1, 1, 1),
+      position: position,
+    );
+
+    bool? didAdd = await arObjectManager?.addNode(newNode);
+    if (didAdd == true) {
+      lastAddedNode = newNode;
+      debugPrint("Model added successfully at position: $position");
+    } else {
+      debugPrint("Failed to add model");
+    }
+  }
+
+  void rotateLastAddedNode() {
+    if (lastAddedNode != null) {
+      Timer.periodic(const Duration(milliseconds: 50), (timer) {
+        if (lastAddedNode == null) {
+          timer.cancel();
+          return;
+        }
+        Matrix4 currentTransform = lastAddedNode!.transform;
+        currentTransform.rotateY(radians(10));
+        lastAddedNode!.transform = currentTransform;
+        arObjectManager?.removeNode(lastAddedNode!);
+        arObjectManager?.addNode(lastAddedNode!);
+        if (currentTransform.getRotation().getColumn(1).y >= radians(360)) {
+          timer.cancel();
+        }
       });
-    });
+      debugPrint("Rotating last added model");
+    } else {
+      debugPrint("No model to rotate");
+    }
   }
 }
-
-class AppColors {
-  static Color mainColor = Colors.deepPurple;
-  static Color background = const Color(0xfff6f7f9);
-  static Color black54 = Colors.black54;
-  static Color white = Colors.white;
-  static Color grey = Colors.grey;
-}
-
-class ARObjects {
-  static const String warrior = "https://raw.githubusercontent.com/Typofree/depot_model/main/models/caracters/warrior.glb";
-  static const String rogue = "https://raw.githubusercontent.com/Typofree/depot_model/main/models/caracters/warrior.glb";
-  static const String magician = "https://raw.githubusercontent.com/Typofree/depot_model/main/models/caracters/warrior.glb";
-  static const String ranger = "https://raw.githubusercontent.com/Typofree/depot_model/main/models/caracters/warrior.glb";
-  static const String barbarian = "https://raw.githubusercontent.com/Typofree/depot_model/main/models/caracters/warrior.glb";
-}
-
-class ShopCardModel {
-  final IconData icon;
-  final String title;
-  bool isActive = false;
-  final String object;
-  final bool isLocal;
-
-  ShopCardModel(
-      this.icon, this.title, this.isActive, this.object, this.isLocal);
-}
-

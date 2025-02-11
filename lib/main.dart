@@ -16,14 +16,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter AR App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.deepPurple),
-      home: const MyHomePage(),
+      home: ARViewScreen(),
     );
   }
 }
-
-
-
-
-
-
-

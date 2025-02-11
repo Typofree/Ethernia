@@ -7,55 +7,84 @@ import 'package:vector_math/vector_math_64.dart';
 class ModelsController {
   late ARSessionManager arSessionManager;
   late ARObjectManager arObjectManager;
-  ARNode? localObjectNode;
   ARNode? webObjectNode;
+  String? modelUri; // Stores the model URL to be loaded later
 
   void initializeAR(
-      ARSessionManager sessionManager,
-      ARObjectManager objectManager,
-      ) {
+    ARSessionManager sessionManager,
+    ARObjectManager objectManager,
+  ) {
     arSessionManager = sessionManager;
     arObjectManager = objectManager;
+
+    arSessionManager.onInitialize(
+      showFeaturePoints: false,
+      showPlanes: true,
+      showWorldOrigin: false,
+      handleTaps: true,
+    );
+
     arObjectManager.onInitialize();
+
+    // ✅ Wait for a tap on a detected surface before loading a model
+    arSessionManager.onPlaneOrPointTap = (hits) {
+      if (hits.isNotEmpty) {
+        var firstHit = hits.first;
+        Vector3 position = firstHit.worldTransform.getTranslation();
+        Vector4 rotation = Vector4(0, 0, 0, 1); // Default rotation
+
+        if (modelUri != null) {
+          print("✅ Detected a plane! Loading model at: $position");
+          loadModel(modelUri!, position, rotation);
+        } else {
+          print("⚠️ Model URI is null. Set a model before tapping.");
+        }
+      } else {
+        print("⚠️ No valid surface detected. Move your phone around.");
+      }
+    };
+
+    print("✅ AR Session Initialized!");
   }
 
-  Future<void> loadLocalModel(String modelUri) async {
-    if (localObjectNode != null) {
-      arObjectManager.removeNode(localObjectNode!);
-      localObjectNode = null;
-    } else {
-      var newNode = ARNode(
-        type: NodeType.localGLTF2,
-        uri: modelUri,
-        scale: Vector3(0.2, 0.2, 0.2),
-        position: Vector3(0.0, -0.5, -2.0),
-        rotation: Vector4(0.0, 0.0, 0.0, 1.0),
-      );
+  void loadWebModel(String uri) {
+    modelUri = uri;
+    print("📡 Model URL set: $modelUri. Tap a surface to place the model.");
+  }
 
-      bool? didAddLocalNode = await arObjectManager.addNode(newNode);
-      localObjectNode = (didAddLocalNode!) ? newNode : null;
+  /// **Loads a model at a given position**
+  Future<void> loadModel(String uri, Vector3 position, Vector4 rotation) async {
+    if (webObjectNode != null) {
+      await arObjectManager.removeNode(webObjectNode!);
+      webObjectNode = null;
+      print("🗑️ Removed existing model.");
+    }
+
+    var newNode = ARNode(
+      type: NodeType.webGLB,
+      uri: uri,
+      scale: Vector3(5.0, 5.0, 5.0), // Ensure it's visible
+      position:
+          Vector3(position.x, position.y + 0.3, position.z), // Lift slightly
+      rotation: rotation,
+    );
+
+    bool? didAddWebNode = await arObjectManager.addNode(newNode);
+    if (didAddWebNode == true) {
+      webObjectNode = newNode;
+      print("✅ Model loaded successfully at: $position");
+    } else {
+      print("❌ Failed to load model.");
     }
   }
 
-  Future<void> loadWebModel(String modelUri) async {
+  /// **Cleans up AR objects when the session ends**
+  void dispose() {
     if (webObjectNode != null) {
       arObjectManager.removeNode(webObjectNode!);
       webObjectNode = null;
-    } else {
-      var newNode = ARNode(
-        type: NodeType.webGLB,
-        uri: modelUri,
-        scale: Vector3(0.2, 0.2, 0.2),
-        position: Vector3(0.0, -0.5, -2.0),
-        rotation: Vector4(0.0, 0.0, 0.0, 1.0),
-      );
-
-      bool? didAddWebNode = await arObjectManager.addNode(newNode);
-      webObjectNode = (didAddWebNode!) ? newNode : null;
     }
-  }
 
-  void dispose() {
     if (arSessionManager != null) {
       arSessionManager.dispose();
     }

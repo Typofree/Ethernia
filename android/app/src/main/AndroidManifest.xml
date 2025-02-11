@@ -1,10 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Permissions -->
-    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.camera"/>
     <uses-permission android:name="android.permission.INTERNET"/>
-
-    <!-- Vérification si ARCore est présent -->
-    <uses-feature android:name="android.hardware.camera.ar" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.ar" />
 
     <application
         android:label="ethernia_ar"
