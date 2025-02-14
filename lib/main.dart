@@ -4,6 +4,11 @@ import 'package:ethernia_ar/screens/homes/homeView.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  debugPrint = (String? message, {int? wrapWidth}) {
+    if (message != null && !message.contains("INTERNAL: No point hit")) {
+      print(message); // Prints only non-error logs
+    }
+  };
   runApp(const MyApp());
 }
 

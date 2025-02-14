@@ -7,7 +7,7 @@ import 'package:ar_flutter_plugin_flutterflow/managers/ar_session_manager.dart';
 import 'package:ar_flutter_plugin_flutterflow/datatypes/node_types.dart';
 import 'package:ar_flutter_plugin_flutterflow/ar_flutter_plugin.dart';
 import 'package:ar_flutter_plugin_flutterflow/models/ar_node.dart';
-import 'package:vector_math/vector_math_64.dart';
+import 'package:vector_math/vector_math_64.dart' hide Colors;
 import 'dart:async';
 
 import 'package:ethernia_ar/screens/models/ARObjectsScreen.dart';
@@ -26,6 +26,7 @@ class _ARViewScreenState extends State<ARViewScreen> {
   ARObjectManager? arObjectManager;
   Vector3? lastTappedPosition;
   ARNode? lastAddedNode;
+  bool isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -33,9 +34,29 @@ class _ARViewScreenState extends State<ARViewScreen> {
       appBar: AppBar(
         title: const Text('AR Model Viewer'),
       ),
-      body: ARView(
-        onARViewCreated: onARViewCreated,
-        planeDetectionConfig: PlaneDetectionConfig.horizontal,
+      body: Stack(
+        children: [
+          ARView(
+            onARViewCreated: onARViewCreated,
+            planeDetectionConfig: PlaneDetectionConfig.horizontal,
+          ),
+          if (isLoading)
+            Center(
+              child: Container(
+                color: Colors.black54,
+                padding: const EdgeInsets.all(20),
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 10),
+                    Text("Loading Model...",
+                        style: TextStyle(color: Colors.white)),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
@@ -43,15 +64,15 @@ class _ARViewScreenState extends State<ARViewScreen> {
           FloatingActionButton(
             onPressed: () {
               if (lastTappedPosition != null) {
-                addARObject(lastTappedPosition!);
+                addOrMoveARObject(lastTappedPosition!);
               }
             },
             child: const Icon(Icons.add),
           ),
           const SizedBox(height: 10),
           FloatingActionButton(
-            onPressed: rotateLastAddedNode,
-            child: const Icon(Icons.rotate_right),
+            onPressed: moveModel,
+            child: const Icon(Icons.open_with),
           ),
         ],
       ),
@@ -86,47 +107,48 @@ class _ARViewScreenState extends State<ARViewScreen> {
           hitResult.worldTransform[13], // Y coordinate
           hitResult.worldTransform[14], // Z coordinate
         );
+        debugPrint(
+            "Tapped position: X=${lastTappedPosition!.x}, Y=${lastTappedPosition!.y}, Z=${lastTappedPosition!.z}");
       }
     };
   }
 
-  Future<void> addARObject(Vector3 position) async {
-    var newNode = ARNode(
-      type: NodeType.webGLB,
-      uri:
-          "https://raw.githubusercontent.com/Typofree/depot_model/main/models/caracters/warrior.glb",
-      scale: Vector3(1, 1, 1),
-      position: position,
-    );
-
-    bool? didAdd = await arObjectManager?.addNode(newNode);
-    if (didAdd == true) {
-      lastAddedNode = newNode;
-      debugPrint("Model added successfully at position: $position");
+  Future<void> addOrMoveARObject(Vector3 position) async {
+    if (lastAddedNode != null) {
+      lastAddedNode!.position = position;
+      arObjectManager?.removeNode(lastAddedNode!);
+      arObjectManager?.addNode(lastAddedNode!);
+      debugPrint("Moved existing model to new position: $position");
     } else {
-      debugPrint("Failed to add model");
+      setState(() => isLoading = true);
+      var newNode = ARNode(
+        type: NodeType.webGLB,
+        uri:
+            "https://raw.githubusercontent.com/Typofree/depot_model/main/models/caracters/archer.glb",
+        scale: Vector3(0.1, 0.1, 0.1),
+        position: position,
+      );
+
+      bool? didAdd = await arObjectManager?.addNode(newNode);
+      setState(() => isLoading = false);
+      if (didAdd == true) {
+        lastAddedNode = newNode;
+        debugPrint("Model added successfully at position: $position");
+      } else {
+        debugPrint("Failed to add model");
+      }
     }
   }
 
-  void rotateLastAddedNode() {
+  void moveModel() {
     if (lastAddedNode != null) {
-      Timer.periodic(const Duration(milliseconds: 50), (timer) {
-        if (lastAddedNode == null) {
-          timer.cancel();
-          return;
-        }
-        Matrix4 currentTransform = lastAddedNode!.transform;
-        currentTransform.rotateY(radians(10));
-        lastAddedNode!.transform = currentTransform;
-        arObjectManager?.removeNode(lastAddedNode!);
-        arObjectManager?.addNode(lastAddedNode!);
-        if (currentTransform.getRotation().getColumn(1).y >= radians(360)) {
-          timer.cancel();
-        }
-      });
-      debugPrint("Rotating last added model");
+      lastAddedNode!.position += Vector3(0.1, 0, 0);
+      arObjectManager?.removeNode(lastAddedNode!);
+      arObjectManager?.addNode(lastAddedNode!);
+      debugPrint(
+          "Moved model to: X=${lastAddedNode!.position.x}, Y=${lastAddedNode!.position.y}, Z=${lastAddedNode!.position.z}");
     } else {
-      debugPrint("No model to rotate");
+      debugPrint("No model to move");
     }
   }
 }
